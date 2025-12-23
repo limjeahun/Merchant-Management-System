@@ -1,0 +1,54 @@
+services:
+  # 1. MySQL (정산 및 회원 정보 저장)
+  mysql:
+    image: mysql:8.0
+    container_name: mms-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mms_db
+      MYSQL_USER: mms
+      MYSQL_PASSWORD: mms
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  # 2. Redis (mms 결과 임시 저장 - CrudRepository 사용)
+  redis:
+    image: redis:7.0
+    container_name: mms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  # 3. Zookeeper (Kafka 코디네이터)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: mms-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  # 4. Kafka (이벤트 브로커)
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: mms-kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_BROKER_ID: 1
+
+volumes:
+  mysql-data:
+  redis-data:

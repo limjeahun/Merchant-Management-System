@@ -2,27 +2,40 @@ package com.infrastructure.persistence.redis
 
 import com.domain.documents.OcrDocument
 import com.domain.repository.OcrCacheRepository
+import com.infrastructure.persistence.redis.repository.OcrRedisRepository
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Repository
 import java.time.Duration
 
 @Repository
 class OcrCacheAdapter(
-    private val redisTemplate: RedisTemplate<String, OcrDocument>
+    private val ocrRedisRepository: OcrRedisRepository
 ): OcrCacheRepository {
     /**
-     * OCR 정보 저장
+     * Redis OCR 정보 저장
      */
     override fun save(result: OcrDocument) {
-        // 10분 후 만료
-        redisTemplate.opsForValue()[/* key = */ result.requestId, /* value = */ result] = /* timeout = */ Duration.ofMinutes(10)
+        val document = OcrDocument(
+            requestId = result.requestId,
+            status    = result.status,
+            rawJson   = result.rawJson,
+            message   = null
+        )
+        ocrRedisRepository.save(document)
     }
 
     /**
      * requestId로 OCR 정보 조회
      */
     override fun findByRequestId(requestId: String): OcrDocument {
-        return redisTemplate.opsForValue()[/* key = */ requestId]
-            ?: throw NoSuchElementException("OCR 정보를 찾을 수 없습니다: $requestId")
+        val entityOpt = ocrRedisRepository.findById(requestId)
+        return entityOpt.map { document ->
+            OcrResult(
+                requestId = document.requestId,
+                status = document.status,
+                rawText = document.rawJson,
+                parsedData = emptyMap() // 필요 시 rawJson 파싱하여 맵핑
+            )
+        }.orElse(null)
     }
 }
