@@ -3,9 +3,7 @@ package com.infrastructure.persistence.redis
 import com.domain.documents.OcrDocument
 import com.domain.repository.OcrCacheRepository
 import com.infrastructure.persistence.redis.repository.OcrRedisRepository
-import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Repository
-import java.time.Duration
 
 @Repository
 class OcrCacheAdapter(
@@ -16,10 +14,10 @@ class OcrCacheAdapter(
      */
     override fun save(result: OcrDocument) {
         val document = OcrDocument(
-            requestId = result.requestId,
-            status    = result.status,
-            rawJson   = result.rawJson,
-            message   = null
+            requestId  = result.requestId,
+            status     = result.status,
+            rawJson    = result.rawJson,
+            parsedData = emptyMap()
         )
         ocrRedisRepository.save(document)
     }
@@ -30,10 +28,10 @@ class OcrCacheAdapter(
     override fun findByRequestId(requestId: String): OcrDocument {
         val entityOpt = ocrRedisRepository.findById(requestId)
         return entityOpt.map { document ->
-            OcrResult(
+            OcrDocument(
                 requestId = document.requestId,
                 status = document.status,
-                rawText = document.rawJson,
+                rawJson = document.rawJson,
                 parsedData = emptyMap() // 필요 시 rawJson 파싱하여 맵핑
             )
         }.orElse(null)

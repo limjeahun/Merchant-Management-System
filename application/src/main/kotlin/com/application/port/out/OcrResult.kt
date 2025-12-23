@@ -13,7 +13,7 @@ data class OcrResult(
             return OcrResult(
                 requestId  = document.requestId,
                 status     = document.status,
-                rawText    = document.rawText,
+                rawText    = document.rawJson,
                 parsedData = document.parsedData,
             )
         }

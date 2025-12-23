@@ -13,6 +13,6 @@ data class OcrDocument(
     val requestId: String,
     @Indexed // 보조 인덱스가 필요한 경우 사용
     val status: String,         // PROCESSING, COMPLETED, FAILED
-    val rawJson: String?,       // Gemini가 반환한 Raw JSON
-    val message: String? = null // 에러 메시지 등
+    val rawJson: String? = null,       // Gemini가 반환한 Raw JSON
+    val parsedData: Map<String, String> = emptyMap()
 )

@@ -18,9 +18,9 @@ class Merchant(
     val representativeName: String, // 대표자 (예: 이임순)
     @Column(nullable = false)
     val address: String,            // 사업장 소재지 (예: 경기도 남양주시...)
-    val businessType: String?,      // 업태 (예: 도소매, 제조)
-    val businessItem: String?,      // 종목 (예: 단체용품, 전자상거래)
-    val openingDate: LocalDate?,    // 개업연월일 (예: 2015-12-01)
+    val businessType: String? = null,      // 업태 (예: 도소매, 제조)
+    val businessItem: String? = null,      // 종목 (예: 단체용품, 전자상거래)
+    val openingDate: LocalDate? = null,    // 개업연월일 (예: 2015-12-01)
     // 시스템 관리 필드
     val verified: Boolean = false,   // 검증 여부
     val registeredAt: LocalDate = LocalDate.now()

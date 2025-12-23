@@ -28,7 +28,7 @@ class OcrEventConsumer(
             val result = OcrDocument(
                 requestId = event.requestId,
                 status = "COMPLETED",
-                rawText = rawText,
+                rawJson = rawText,
                 parsedData = parsedData
             )
             // Redis 저장

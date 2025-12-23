@@ -52,9 +52,10 @@ class OcrService(
 
         val document = Merchant(
             requestId = requestId,
-            rawText = cachedResult.rawText ?: "",
-            parsedName = cachedResult.parsedData["name"],
-            parsedNumber = cachedResult.parsedData["number"],
+            merchantName = cachedResult.parsedData["name"]?: "",
+            businessNumber = cachedResult.parsedData["number"]?: "",
+            representativeName = cachedResult.parsedData["name"]?: "",
+            address = "",
             verified = true // 검증 로직 추가 가능
         )
         return ocrDocumentRepository.save(document)
