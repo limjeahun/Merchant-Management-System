@@ -4,7 +4,7 @@ services:
     image: mysql:8.0
     container_name: mms-mysql
     ports:
-      - "3306:3306"
+      - "3307:3306" # 로컬 MySQL과 충돌 방지 (호스트:컨테이너)
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: mms_db
@@ -66,10 +66,11 @@ services:
     #           count: 1
     #           capabilities: [gpu]
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
+      test: [ "CMD-SHELL", "ollama list || exit 1" ]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s # Ollama 초기화 시간 대기
     restart: unless-stopped
 
   # 6. Ollama 모델 초기화 (Gemma3 4B 자동 Pull)

@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component
 class KafkaOcrProducer(
     private val kafkaTemplate: KafkaTemplate<String, OcrRequestEvent>
 ): OcrEventPort {
-    override fun publishEvent(event: OcrRequestEvent) {
-        kafkaTemplate.send("ocr-request-topic", event.requestId, event)
+    override fun publishBusinessLicenseOcrRequest(event: OcrRequestEvent) {
+        kafkaTemplate.send("mms.ocr.business-license.request", event.requestId, event)
     }
 
 }

@@ -13,7 +13,7 @@ spring:
   # DATABASE (MySQL) CONFIGURATION
   # ===============================================
   datasource:
-    url: jdbc:mysql://localhost:3306/mms_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    url: jdbc:mysql://localhost:3307/mms_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
     username: mms
     password: mms
     driver-class-name: com.mysql.cj.jdbc.Driver

@@ -3,7 +3,6 @@ package com.worker.consumer
 import com.application.port.out.ExternalOcrPort
 import com.application.port.out.TextProcessorPort
 import com.common.event.OcrRequestEvent
-import com.common.ocr.DocumentType
 import com.domain.documents.OcrDocument
 import com.domain.repository.OcrCacheRepository
 import org.slf4j.LoggerFactory
@@ -29,7 +28,7 @@ class OcrEventConsumer(
      * 4. Gemma2로 문서 분류 및 필드 파싱
      * 5. Redis에 결과 저장
      */
-    @KafkaListener(topics = ["ocr-request-topic"], groupId = "ocr-worker-group")
+    @KafkaListener(topics = ["mms.ocr.business-license.request"], groupId = "mms.ocr.worker-group")
     fun consumeOcrRequest(event: OcrRequestEvent) {
         logger.info("Processing OCR Event: ${event.requestId}")
 
@@ -44,11 +43,11 @@ class OcrEventConsumer(
                 throw RuntimeException("OCR extraction failed: ${ocrResult.errorMessage}")
             }
             
-            logger.info("OCR extracted ${ocrResult.lines.size} lines for ${event.requestId}")
-            
+            logger.info("OCR extracted ${ocrResult.fullText} lines for ${event.requestId}")
+
             // 3. Gemma2로 OCR 오류 보정
             val correctedText = textProcessorPort.correctOcrErrors(ocrResult.fullText)
-            logger.debug("OCR text corrected for ${event.requestId}")
+            logger.debug("OCR text corrected $correctedText for ${event.requestId}")
             
             // 4. Gemma2로 문서 분류
             val documentType = textProcessorPort.classifyDocument(correctedText)

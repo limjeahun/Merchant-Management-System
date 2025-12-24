@@ -11,6 +11,17 @@ PaddleOCR (ONNX) + LangChain4j (Gemma2) 기반 로컬 OCR 시스템 설정 가�
 ```powershell
 # 모든 서비스 실행 (MySQL, Redis, Kafka, Ollama)
 docker-compose up -d
+
+# 전체 컨테이너 상태
+docker ps
+
+# Ollama 헬스 상태 확인
+docker inspect mms-ollama --format "{{.State.Health.Status}}"
+# 결과: healthy (정상) / unhealthy (문제) / starting (시작 중)
+
+# Gemma3에게 인사하기
+docker exec -it mms-ollama ollama run gemma3:4b "안녕하세요"
+
 ```
 
 ### 서비스 구성
@@ -274,4 +285,9 @@ ollama:
 ```powershell
 # NVIDIA Container Toolkit 설치 (Linux)
 # https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+```
+
+```
+Swagger UI: http://localhost:8080/swagger-ui.html
+OpenAPI JSON: http://localhost:8080/v3/api-docs
 ```

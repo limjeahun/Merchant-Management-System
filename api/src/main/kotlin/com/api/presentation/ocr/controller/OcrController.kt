@@ -20,7 +20,7 @@ class OcrController(
     // 1. 신분증/사업자등록증 촬영 및 요청 (Async)
     @PostMapping("/request")
     fun requestOcr(@RequestBody request: OcrRequest): ResponseEntity<String> {
-        val requestId = ocrUseCase.requestOcrProcessing(request.toOcrCommand())
+        val requestId = ocrUseCase.submitBusinessLicenseOcr(request.toOcrCommand())
         return ResponseEntity.ok(requestId)
     }
 

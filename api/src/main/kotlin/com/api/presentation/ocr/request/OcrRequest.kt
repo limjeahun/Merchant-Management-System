@@ -1,11 +1,25 @@
 package com.api.presentation.ocr.request
 
 import com.application.port.`in`.OcrCommand
+import io.swagger.v3.oas.annotations.media.Schema
 import java.util.*
 
+@Schema(description = "OCR 요청 DTO")
 data class OcrRequest(
+    @Schema(
+        description = "이미지 데이터 (URL 또는 Base64 Data URI)",
+        example = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        required = true
+    )
     val imageUrl: String,
-    val type    : String, // "ID_CARD" or "BUSINESS_LICENSE"
+
+    @Schema(
+        description = "문서 유형",
+        example = "BUSINESS_LICENSE",
+        allowableValues = ["ID_CARD", "BUSINESS_LICENSE"],
+        required = true
+    )
+    val type: String,
 ) {
 
     fun toOcrCommand(): OcrCommand {

@@ -18,9 +18,10 @@ class OcrService(
     private val ocrDocumentRepository: MerchantRepository,
 ): OcrUseCase {
     /**
+     * 사업자등록증 OCR 요청 제출
      * 1. 요청 -> Kafka 이벤트 발행 -> requestId 반환
      */
-    override fun requestOcrProcessing(ocrCommand: OcrCommand): String {
+    override fun submitBusinessLicenseOcr(ocrCommand: OcrCommand): String {
         val event = OcrRequestEvent(
             requestId    = ocrCommand.requestId,
             imageUrl     = ocrCommand.imageUrl,
@@ -28,7 +29,7 @@ class OcrService(
         )
         // 초기 상태 Redis 저장
         ocrCacheRepository.save(OcrDocument(event.requestId, "PROCESSING"))
-        ocrEventPort.publishEvent(event)
+        ocrEventPort.publishBusinessLicenseOcrRequest(event)
         return event.requestId
     }
 
