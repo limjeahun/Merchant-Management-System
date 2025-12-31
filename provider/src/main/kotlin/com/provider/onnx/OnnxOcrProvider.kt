@@ -2,7 +2,6 @@ package com.provider.onnx
 
 import ai.onnxruntime.*
 import com.application.port.out.OcrPort
-import com.common.ocr.OcrLine
 import com.common.ocr.OcrRawResult
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
@@ -149,7 +148,7 @@ class OnnxOcrProvider(
         }
 
         // Step 2: Recognition - 각 영역에서 텍스트 인식
-        val ocrLines = mutableListOf<OcrLine>()
+        val textLines = mutableListOf<String>()
 
         for (box in boxes) {
             try {
@@ -157,7 +156,7 @@ class OnnxOcrProvider(
                 if (croppedImage.width > 0 && croppedImage.height > 0) {
                     val text = recognizeText(croppedImage)
                     if (text.isNotBlank()) {
-                        ocrLines.add(OcrLine(text = text, confidence = 0.9f))
+                        textLines.add(text)
                     }
                 }
             } catch (e: Exception) {
@@ -165,10 +164,16 @@ class OnnxOcrProvider(
             }
         }
 
-        val fullText = ocrLines.joinToString("\n") { it.text }
-        logger.info("OCR completed, extracted ${ocrLines.size} lines")
+        val fullText = textLines.joinToString("\n")
+        logger.info("OCR completed, extracted ${textLines.size} lines")
 
-        return OcrRawResult(fullText = fullText, lines = ocrLines, success = true)
+        return OcrRawResult(
+                fullText = fullText,
+                lines = textLines,
+                success = true,
+                confidence = 0.9,
+                engine = "onnx"
+        )
     }
 
     /** Detection: 텍스트 영역 감지 */

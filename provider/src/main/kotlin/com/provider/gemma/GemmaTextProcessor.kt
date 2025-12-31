@@ -102,4 +102,37 @@ class GemmaTextProcessor(
             "{}"
         }
     }
+
+    /** 앙상블 OCR 결과를 교차검증하여 필드를 파싱합니다. */
+    override fun crossValidateAndParse(
+            ensembleResults: String,
+            businessType: String
+    ): BusinessLicenseData {
+        return try {
+            logger.info("=== Gemma3 앙상블 교차검증 시작 (businessType: $businessType) ===")
+
+            // 1. 앙상블 교차검증 프롬프트 선택
+            val crossValidationPrompt =
+                    PromptTemplates.getEnsembleCrossValidationPrompt(businessType)
+            val prompt =
+                    PromptTemplates.render(
+                            crossValidationPrompt,
+                            mapOf("ensemble_results" to ensembleResults)
+                    )
+
+            // 2. 텍스트만으로 교차검증 수행 (이미지 불필요)
+            val response = chatModel.generate(prompt)
+
+            logger.info("=== Gemma3 교차검증 응답 ===")
+            logger.info(response)
+            logger.info("============================")
+
+            // 3. JSON 추출 및 파싱
+            val jsonStr = extractJson(response)
+            BusinessLicenseData.fromJson(jsonStr)
+        } catch (e: Exception) {
+            logger.error("앙상블 교차검증 실패: ${e.message}", e)
+            BusinessLicenseData.empty()
+        }
+    }
 }

@@ -108,7 +108,49 @@ services:
       start_period: 60s # 모델 로딩 시간 고려
     restart: unless-stopped
 
+  # 8. Pororo OCR API (한국어 특화 OCR - Kakaobrain, GPU 필요)
+  pororo:
+    build:
+      context: .
+      dockerfile: docker/pororo/Dockerfile
+    container_name: mms-pororo
+    ports:
+      - "127.0.0.1:9004:9004"
+    volumes:
+      - pororo-models:/root/.pororo # 모델 가중치 캐싱
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:9004/health')\" || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s # Pororo 모델 로딩 시간 (더 길게)
+    restart: unless-stopped
+
+  # 9. OnnxTR OCR API (다국어 OCR - DocTR ONNX)
+  onnxtr:
+    build:
+      context: .
+      dockerfile: docker/onnxtr/Dockerfile
+    container_name: mms-onnxtr
+    ports:
+      - "127.0.0.1:9005:9005"
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:9005/health')\" || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+
 volumes:
   mysql-data:
   redis-data:
   ollama-data:
+  pororo-models:

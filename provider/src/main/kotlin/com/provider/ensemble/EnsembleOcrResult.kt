@@ -1,0 +1,52 @@
+package com.provider.ensemble
+
+import com.common.ocr.OcrRawResult
+
+/** 앙상블 OCR 결과 3개 OCR 엔진의 결과를 담는 데이터 클래스 */
+data class EnsembleOcrResult(
+        val paddleOcr: OcrRawResult,
+        val pororo: OcrRawResult,
+        val onnxtr: OcrRawResult
+) {
+    /** 모든 엔진이 성공했는지 확인 */
+    val allSuccess: Boolean
+        get() = paddleOcr.success && pororo.success && onnxtr.success
+
+    /** 성공한 엔진 수 */
+    val successCount: Int
+        get() = listOf(paddleOcr, pororo, onnxtr).count { it.success }
+
+    /** 성공한 결과만 필터링 */
+    val successfulResults: List<OcrRawResult>
+        get() = listOf(paddleOcr, pororo, onnxtr).filter { it.success }
+
+    /** 가장 높은 신뢰도의 결과 반환 */
+    val bestResult: OcrRawResult?
+        get() = successfulResults.maxByOrNull { it.confidence }
+
+    /** 한글 비율이 가장 높은 결과 반환 */
+    val bestKoreanResult: OcrRawResult?
+        get() = successfulResults.maxByOrNull { calculateKoreanRatio(it.fullText) }
+
+    /** Gemma3 프롬프트용 포맷된 결과 */
+    fun toPromptFormat(): String = buildString {
+        appendLine("[PaddleOCR]")
+        appendLine(if (paddleOcr.success) paddleOcr.fullText else "(실패: ${paddleOcr.errorMessage})")
+        appendLine()
+        appendLine("[Pororo]")
+        appendLine(if (pororo.success) pororo.fullText else "(실패: ${pororo.errorMessage})")
+        appendLine()
+        appendLine("[OnnxTR]")
+        appendLine(if (onnxtr.success) onnxtr.fullText else "(실패: ${onnxtr.errorMessage})")
+    }
+
+    companion object {
+        /** 한글 비율 계산 */
+        fun calculateKoreanRatio(text: String): Double {
+            if (text.isBlank()) return 0.0
+            val koreanChars = text.count { it in '\uAC00'..'\uD7A3' }
+            val totalChars = text.replace(Regex("[\\s\\n]"), "").length
+            return if (totalChars > 0) koreanChars.toDouble() / totalChars else 0.0
+        }
+    }
+}

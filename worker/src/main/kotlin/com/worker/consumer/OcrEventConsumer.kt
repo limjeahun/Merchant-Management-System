@@ -1,64 +1,70 @@
 package com.worker.consumer
 
-import com.application.port.out.OcrPort
 import com.application.port.out.TextProcessorPort
 import com.common.event.OcrRequestEvent
 import com.domain.documents.OcrDocument
 import com.domain.repository.OcrCacheRepository
+import com.provider.ensemble.EnsembleOcrProvider
 import java.util.Base64
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
 @Component
 class OcrEventConsumer(
-        private val ocrPort: OcrPort,
+        private val ensembleOcrProvider: EnsembleOcrProvider,
         private val textProcessorPort: TextProcessorPort,
         private val ocrCacheRepository: OcrCacheRepository,
+        @Value("\${ensemble.enabled:true}") private val ensembleEnabled: Boolean
 ) {
     private val logger = LoggerFactory.getLogger(OcrEventConsumer::class.java)
     private val restClient = RestClient.create()
 
     /**
-     * OCR 이벤트 처리 파이프라인 (간소화)
+     * OCR 이벤트 처리 파이프라인 (앙상블 버전)
      * 1. 이미지 다운로드
-     * 2. RapidOCR로 텍스트 추출
-     * 3. Gemma3로 OCR 보정 + 필드 파싱 (businessType 기반 프롬프트 사용)
+     * 2. 3개 OCR 엔진 병렬 실행 (PaddleOCR, Pororo, OnnxTR)
+     * 3. Gemma3로 교차검증 + 필드 파싱
      * 4. Redis에 결과 저장
      */
     @KafkaListener(topics = ["mms.ocr.business-license.request"], groupId = "mms.ocr.worker-group")
     fun consumeOcrRequest(event: OcrRequestEvent) {
-        logger.info("=== OCR 처리 시작 ===")
+        logger.info("=== OCR 처리 시작 (앙상블 모드: $ensembleEnabled) ===")
         logger.info("RequestId: ${event.requestId}")
         logger.info("BusinessType: ${event.businessType}")
 
         try {
-            // 1. 이미지 다운로드 (URL인 경우) 또는 Base64 디코딩
+            // 1. 이미지 다운로드 또는 Base64 디코딩
             val rawImageBytes = downloadOrDecodeImage(event.imageUrl)
             logger.info("이미지 로드 완료 (${rawImageBytes.size} bytes)")
 
-            // 1.5. 이미지 전처리 (Gemma3 분석 정확도 향상)
-            val preprocessedBytes = com.provider.image.ImagePreprocessor.preprocess(rawImageBytes)
-            logger.info("이미지 전처리 완료 (${preprocessedBytes.size} bytes)")
+            // 2. 앙상블 OCR 실행 (3개 엔진 병렬)
+            val ensembleResult = ensembleOcrProvider.extractTextParallel(rawImageBytes)
 
-            // 2. RapidOCR로 텍스트 추출 (원본 이미지 사용)
-            val ocrResult = ocrPort.extractText(rawImageBytes)
+            logger.info("=== 앙상블 OCR 결과 요약 ===")
+            logger.info(
+                    "  PaddleOCR: ${if (ensembleResult.paddleOcr.success) "${ensembleResult.paddleOcr.lines.size}줄" else "실패"}"
+            )
+            logger.info(
+                    "  Pororo: ${if (ensembleResult.pororo.success) "${ensembleResult.pororo.lines.size}줄" else "실패"}"
+            )
+            logger.info(
+                    "  OnnxTR: ${if (ensembleResult.onnxtr.success) "${ensembleResult.onnxtr.lines.size}줄" else "실패"}"
+            )
+            logger.info("============================")
 
-            if (!ocrResult.success) {
-                throw RuntimeException("OCR extraction failed: ${ocrResult.errorMessage}")
-            }
+            // 3. Gemma3로 교차검증 + 필드 파싱
+            val ensembleResultsText = ensembleResult.toPromptFormat()
+            logger.info("=== 앙상블 결과 (Gemma3 입력) ===")
+            logger.info(ensembleResultsText)
+            logger.info("================================")
 
-            logger.info("=== RapidOCR 추출 결과 ===")
-            logger.info(ocrResult.fullText)
-            logger.info("==========================")
-
-            // 3. Gemma3로 OCR 보정 + 필드 파싱 (전처리된 이미지 사용)
             val parsedData =
-                    textProcessorPort.correctAndParse(
-                            text = ocrResult.fullText,
-                            businessType = event.businessType,
-                            imageBytes = preprocessedBytes
+                    textProcessorPort.crossValidateAndParse(
+                            ensembleResults = ensembleResultsText,
+                            businessType = event.businessType
                     )
 
             logger.info("=== 최종 파싱 결과 [${event.requestId}] ===")

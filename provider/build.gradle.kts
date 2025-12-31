@@ -2,6 +2,7 @@ dependencies {
     implementation(project(":application")) // Port 구현을 위해
     implementation(project(":common"))
     implementation("org.springframework.boot:spring-boot-starter-web") // RestClient
+    implementation("org.springframework.boot:spring-boot-starter-webflux") // WebClient for async
 
     // ONNX Runtime - PaddleOCR 모델 추론용
     implementation("com.microsoft.onnxruntime:onnxruntime:1.17.0")

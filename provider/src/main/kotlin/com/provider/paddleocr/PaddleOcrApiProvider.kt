@@ -1,7 +1,6 @@
 package com.provider.paddleocr
 
 import com.application.port.out.OcrPort
-import com.common.ocr.OcrLine
 import com.common.ocr.OcrRawResult
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -63,7 +62,7 @@ class PaddleOcrApiProvider(
 
             if (responseStr.isNullOrEmpty()) {
                 logger.error("RapidOCR API returned empty response")
-                return OcrRawResult.error("RapidOCR API returned empty response")
+                return OcrRawResult.error("RapidOCR API returned empty response", "paddleocr")
             }
 
             // 응답 파싱
@@ -75,41 +74,53 @@ class PaddleOcrApiProvider(
             if (!isSuccess) {
                 val errorMsg = response.msg ?: "Unknown error"
                 logger.error("RapidOCR API error: code=${response.code}, msg=$errorMsg")
-                return OcrRawResult.error("RapidOCR API error: $errorMsg")
+                return OcrRawResult.error("RapidOCR API error: $errorMsg", "paddleocr")
             }
 
             // 결과 파싱 - 새 형식(lines) 또는 기존 형식(data) 사용
-            val ocrLines =
+            val textLines: List<String> =
                     when {
                         // 새 형식: lines 필드 사용
                         !response.lines.isNullOrEmpty() -> {
-                            response.lines.map { item ->
-                                OcrLine(
-                                        text = item.text ?: "",
-                                        confidence = item.confidence?.toFloat() ?: 0.9f
-                                )
-                            }
+                            response.lines.map { it.text ?: "" }
                         }
                         // 기존 형식: data 필드 사용
                         !response.data.isNullOrEmpty() -> {
-                            response.data.map { item ->
-                                OcrLine(
-                                        text = item.text ?: "",
-                                        confidence = item.score?.toFloat() ?: 0.9f
-                                )
-                            }
+                            response.data.map { it.text ?: "" }
                         }
                         else -> emptyList()
                     }
 
-            val fullText = response.text ?: ocrLines.joinToString("\n") { it.text }
+            // 평균 신뢰도 계산
+            val avgConfidence =
+                    when {
+                        !response.lines.isNullOrEmpty() -> {
+                            response.lines.mapNotNull { it.confidence }.average().takeIf {
+                                !it.isNaN()
+                            }
+                                    ?: 0.0
+                        }
+                        !response.data.isNullOrEmpty() -> {
+                            response.data.mapNotNull { it.score }.average().takeIf { !it.isNaN() }
+                                    ?: 0.0
+                        }
+                        else -> 0.0
+                    }
 
-            logger.info("OCR completed, extracted ${ocrLines.size} lines")
+            val fullText = response.text ?: textLines.joinToString("\n")
 
-            OcrRawResult(fullText = fullText, lines = ocrLines, success = true)
+            logger.info("OCR completed, extracted ${textLines.size} lines")
+
+            OcrRawResult(
+                    fullText = fullText,
+                    lines = textLines,
+                    success = true,
+                    confidence = avgConfidence,
+                    engine = "paddleocr"
+            )
         } catch (e: Exception) {
             logger.error("RapidOCR API call failed: ${e.message}", e)
-            OcrRawResult.error("RapidOCR API call failed: ${e.message}")
+            OcrRawResult.error("RapidOCR API call failed: ${e.message}", "paddleocr")
         }
     }
 }

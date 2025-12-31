@@ -64,3 +64,22 @@ ollama:
   model-name: gemma3:12b
   timeout: 300s
   temperature: 0.1  # 낮은 값 = 일관된 출력 (OCR용 권장: 0.0~0.3)
+
+# ===============================================
+# ENSEMBLE OCR CONFIGURATION
+# ===============================================
+
+# Pororo OCR 설정 (Kakaobrain)
+pororo:
+  api-url: ${PORORO_API_URL:http://localhost:9004}
+  timeout: 60s
+
+# OnnxTR OCR 설정 (DocTR ONNX)
+onnxtr:
+  api-url: ${ONNXTR_API_URL:http://localhost:9005}
+  timeout: 60s
+
+# 앙상블 OCR 설정
+ensemble:
+  enabled: ${ENSEMBLE_ENABLED:true}  # 앙상블 모드 활성화
+  timeout: 90  # 전체 앙상블 타임아웃 (초)

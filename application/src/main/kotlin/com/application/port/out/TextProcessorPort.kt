@@ -17,4 +17,12 @@ interface TextProcessorPort {
             businessType: String,
             imageBytes: ByteArray?
     ): BusinessLicenseData
+
+    /**
+     * 앙상블 OCR 결과를 교차검증하여 필드를 파싱합니다.
+     * @param ensembleResults 3개 OCR 엔진 결과 포맷 문자열
+     * @param businessType 사업자 유형 (INDIVIDUAL or CORPORATE)
+     * @return 파싱된 사업자등록증 데이터
+     */
+    fun crossValidateAndParse(ensembleResults: String, businessType: String): BusinessLicenseData
 }
